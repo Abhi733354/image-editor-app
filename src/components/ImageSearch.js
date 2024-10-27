@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { createClient } from 'pexels';
+import { createApi } from 'unsplash-js';
 import OwlCarousel from 'react-owl-carousel';
 import 'owl.carousel/dist/assets/owl.carousel.css';
 import 'owl.carousel/dist/assets/owl.theme.default.css';
+
+const unsplash = createApi({
+    accessKey: '4Fg1OFuydjWUVM8iuEoTr6YNLRVWBwEyoxhtgwCWkEI',
+});
 
 const ImageSearch = ({ onSelectImage }) => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
-
-
-    const client = createClient('z4E52xP6aDygYlRCK5yEyLjGc7JQvsioe8z0p6NHGjkavywCYM1T2MkI');
 
     const handleSearch = async () => {
         if (!query.trim()) {
@@ -23,11 +24,19 @@ const ImageSearch = ({ onSelectImage }) => {
         setError(null);
 
         try {
-            const photos = await client.photos.search({ query, per_page: 20 });
-            setResults(photos.photos);
+            const response = await unsplash.search.getPhotos({
+                query,
+                perPage: 20,
+            });
+
+            if (response.response && response.response.results) {
+                setResults(response.response.results);
+            } else {
+                setError('No images found.');
+            }
         } catch (error) {
-            console.error('Error fetching images', error);
-            setError('Failed to fetch images. Please try again later.');
+            console.error('Error fetching images:', error);
+            setError('Failed to fetch images. Please check your API key or network connection.');
         } finally {
             setLoading(false);
         }
@@ -49,9 +58,8 @@ const ImageSearch = ({ onSelectImage }) => {
 
     return (
         <div className='container mt-4 border p-4 rounded'>
-
             <div className="d-flex justify-content-center mb-3 pt-5">
-                <div className="input-group seach-style">
+                <div className="input-group search-style">
                     <input
                         type="text"
                         value={query}
@@ -76,16 +84,16 @@ const ImageSearch = ({ onSelectImage }) => {
             <div className="image-results">
                 {results.length > 0 && !loading ? (
                     <OwlCarousel className="owl-theme" {...options}>
-                        {results.slice().map((image) => (
+                        {results.map((image) => (
                             <div className="item" key={image.id}>
                                 <img
-                                    src={image.src.medium}
-                                    alt={image.alt}
+                                    src={image.urls.small}
+                                    alt={image.alt_description || "Image"}
                                     className="d-block w-100"
                                     style={{ height: '300px', objectFit: 'cover' }}
                                 />
                                 <div className="text-center mt-2">
-                                    <button onClick={() => onSelectImage(image.src.large)} className="btn btn-primary col-7">Add Captions</button>
+                                    <button onClick={() => onSelectImage(image.urls.full)} className="btn btn-primary col-7">Add Captions</button>
                                 </div>
                             </div>
                         ))}
